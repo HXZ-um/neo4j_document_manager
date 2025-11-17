@@ -1,0 +1,45 @@
+identity:
+  name: neo4j_properties_embedded
+  author: hxz
+  label:
+    en_US: Neo4j Entity Node Properties Vector Storage
+    zh_Hans: Neo4j 实体节点属性向量化存储
+    pt_BR: Armazenamento Vetorial de Propriedades de Nó de Entidade Neo4j
+description:
+  human:
+    en_US: Store entity node properties in Neo4j graph database with automatic vector embedding generation, enabling efficient similarity search and semantic analysis of node attributes.
+    zh_Hans: 将实体节点属性存储到Neo4j图数据库中，同时自动生成向量嵌入，支持节点属性的高效相似性搜索和语义分析。
+    pt_BR: Armazene propriedades de nós de entidade no banco de dados gráfico Neo4j com geração automática de incorporação de vetores, possibilitando busca de similaridade eficiente e análise semântica de atributos de nós.
+  llm: A tool for storing entity node properties in Neo4j with vector embedding. Requires node label and properties in JSON format. Automatically processes properties into vector representations for semantic operations.
+parameters:
+  - name: label
+    type: string
+    required: true
+    label:
+      en_US: Neo4j Node Label
+      zh_Hans: NEO4J 节点标签
+      pt_BR: Rótulo de Nó Neo4j
+    human_description:
+      en_US: The label name used to categorize nodes in Neo4j, representing the entity type. Must follow Neo4j label naming conventions.
+      zh_Hans: 用于在Neo4j中对节点进行分类的标签名称，代表实体类型。需遵循Neo4j标签命名规范。
+      pt_BR: O nome do rótulo usado para categorizar nós no Neo4j, representando o tipo de entidade . Deve seguir as convenções de nomenclatura de rótulos do Neo4j.
+    llm_description: Specify the Neo4j node label (entity type) for categorizing the node. Use a single word or camelCase format (e.g., "Document", "EquipmentPart").
+    form: llm
+
+  - name: metadata_json
+    type: string
+    required: true
+    label:
+      en_US: Node Properties JSON
+      zh_Hans: 节点属性的json字典
+      pt_BR: Dicionário JSON de Propriedades de Nó
+    human_description:
+      en_US: A valid JSON string containing key-value pairs of node properties (e.g., {"id":"123", "name":"Sample", "description":"Details..."}).
+      zh_Hans: 包含节点属性键值对的有效JSON字符串（例如{"id":"123", "name":"Sample", "description":"Details..."}）
+      pt_BR: Uma string JSON válida contendo pares chave-valor de propriedades de nó .
+    llm_description: Provide node properties as a valid JSON string. Include all relevant attributes (e.g., {"uid":"1001", "name":"Technical Drawing", "category":"Engineering"}).
+    form: llm
+
+extra:
+  python:
+    source: tools/neo4j_properties_embedded.py

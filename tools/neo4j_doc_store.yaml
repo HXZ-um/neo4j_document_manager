@@ -1,0 +1,51 @@
+identity:
+  name: neo4j_doc_store
+  author: hxz
+  label:
+    en_US: Neo4j Document Store
+    zh_Hans: Neo4j文档存储
+description:
+  human:
+    en_US: Process documents by chunking and vectorizing content, create Chunk nodes to store original text and vector embeddings, link to Drawing nodes.
+    zh_Hans: 将文档内容进行分块并向量化，创建Chunk节点存储原文本内容以及向量化内容，关联Drawing节点
+  llm: This tool processes documents by chunking text content, generating vector embeddings using BGE-large-zh-v1.5 model, creating Chunk nodes to store both original text and vector embeddings.
+parameters:
+  - name: source_url
+    type: string
+    required: true
+    label:
+      en_US: Source URL
+      zh_Hans: 文档源路径
+    human_description:
+      en_US: The URL or file path of the document to be processed
+      zh_Hans: 要处理的文档的URL或文件路径
+    llm_description: The source URL or file path of the document that needs to be chunked and vectorized
+    form: llm
+
+  - name: file_name
+    type: string
+    required: true
+    label:
+      en_US: File Name
+      zh_Hans: 文件名
+    human_description:
+      en_US: The name of the file to be stored in the database
+      zh_Hans: 要存储在数据库中的文件名
+    llm_description: The filename that will be used to identify this document in the Neo4j database
+    form: llm
+
+  - name: text
+    type: string
+    required: true
+    label:
+      en_US: Text Content
+      zh_Hans: 文本内容
+    human_description:
+      en_US: The text content to be processed
+      zh_Hans: 要处理的文本内容
+    llm_description: The text content to be chunked and vectorized
+    form: llm
+
+extra:
+  python:
+    source: tools/neo4j_doc_store.py

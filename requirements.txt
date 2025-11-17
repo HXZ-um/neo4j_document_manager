@@ -1,0 +1,8 @@
+dify_plugin>=0.2.0,<0.3.0
+
+neo4j~=5.28.2
+requests~=2.32.4
+transformers~=4.44.0
+torch~=2.7.1
+numpy>=1.21.0
+PyPDF2>=3.0.0

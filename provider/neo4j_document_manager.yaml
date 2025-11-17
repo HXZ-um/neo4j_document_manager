@@ -1,0 +1,19 @@
+identity:
+  author: hxz
+  name: neo4j_document_manager
+  label:
+    en_US: Neo4j Document Manager
+    zh_Hans: Neo4j文档管理器
+    pt_BR: Gerenciador de Documentos Neo4j
+  description:
+    en_US: A comprehensive tool for managing documents in Neo4j, including storing document content with vector embeddings and performing semantic searches.
+    zh_Hans: 一个用于在Neo4j中管理文档的综合工具，包括存储带向量嵌入的文档内容和执行语义搜索。
+    pt_BR: Uma ferramenta completa para gerenciar documentos no Neo4j, incluindo armazenamento de conteúdo com embeddings vetoriais e busca semântica.
+  icon: icon.svg
+tools:
+  - tools/neo4j_doc_store.yaml
+  - tools/neo4j_semantic_query.yaml
+  - tools/neo4j_properties_embedded.yaml
+extra:
+  python:
+    source: provider/neo4j_document_manager.py

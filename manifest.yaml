@@ -1,0 +1,51 @@
+version: 0.0.1
+type: plugin
+author: hxz
+name: neo4j_document_manager
+label:
+  en_US: Neo4j Document Manager
+  zh_Hans: Neo4j文档管理器
+  pt_BR: Gerenciador de Documentos Neo4j
+description:
+  en_US: A comprehensive plugin for managing documents in Neo4j, including storing document content with vector embeddings and performing semantic searches.
+  zh_Hans: 一个用于在Neo4j中管理文档的综合插件，包括存储带向量嵌入的文档内容和执行语义搜索。
+  pt_BR: Um plugin completo para gerenciar documentos no Neo4j, incluindo armazenamento de conteúdo com embeddings vetoriais e execução de buscas semânticas.
+icon: icon.svg
+resource:
+  memory: 268435456
+  permission:
+    tool:
+      enabled: true
+    model:
+      enabled: false
+      llm: false
+      text_embedding: false
+      rerank: false
+      tts: false
+      speech2text: false
+      moderation: false
+    node:
+      enabled: false
+    endpoint:
+      enabled: true
+    app:
+      enabled: true
+    storage:
+      enabled: true
+      size: 1048576
+plugins:
+  tools:
+    - provider/neo4j_document_manager.yaml
+meta:
+  version: 0.0.1
+  arch:
+    - amd64
+    - arm64
+  runner:
+    language: python
+    version: "3.12"
+    entrypoint: main
+  minimum_dify_version: "0.6.0"  # 指定兼容的最低Dify版本
+created_at: 2025-08-16T11:40:02.5455833+08:00
+privacy: PRIVACY.md
+verified: false
