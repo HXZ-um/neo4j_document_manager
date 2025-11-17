@@ -16,7 +16,7 @@ Neo4j Document Manager 是一个基于 Neo4j 图数据库的智能文档管理�
 
 ### 技术栈
 
-- **Python 3.8+**：主开发语言
+- **Python 3.12+**：主开发语言
 - **Neo4j 5.28.2**：图数据库，支持向量索引
 - **BAAI/bge-large-zh-v1.5**：中文向量模型，用于语义嵌入
 - **Transformers**：HuggingFace库加载BGE模型
@@ -46,7 +46,7 @@ Neo4j Document Manager 是一个基于 Neo4j 图数据库的智能文档管理�
 
 ### 环境要求
 
-- **Python版本**：3.8+
+- **Python版本**：3.12+
 - **内存**：至少4GB（BGE-large模型需求）
 - **Neo4j版本**：5.x（支持向量索引）
 - **GPU支持**：可选，启用需CUDA环境
@@ -278,10 +278,4 @@ Neo4j 中创建了两个向量索引以支持双索引语义查询：
    - 查看Neo4j日志获取详细错误信息
 
 ### 测试验证
-
-可以通过以下方式验证插件功能：
-
-1. 使用 [test_doc_store.py](file:///d:/dify/neo4j_document_manager/test_doc_store.py) 测试文档存储功能
-2. 使用 [test_label_return.py](file:///d:/dify/neo4j_document_manager/test_label_return.py) 测试节点属性向量化功能
-
 运行测试前请确保已正确配置Neo4j连接参数。
