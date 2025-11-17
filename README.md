@@ -1,483 +1,287 @@
 # Neo4j Document Manager
 
-**Author:** hxz  
-**Version:** 0.0.1  
-**Type:** 文档管理工具
-
 ## 项目概述
 
-这是一个基于 Neo4j 图数据库的智能文档存储与管理工具，专为语义查询和图谱化文档存储而设计。该项目采用先进的 BGE-large-zh-v1.5 中文向量模型，提供高精度的文档语义理解和相似度检索能力。
+Neo4j Document Manager 是一个基于 Neo4j 图数据库的智能文档管理工具，专为 Dify 平台设计。它提供了一套完整的文档处理和语义检索功能，支持将文档内容进行分块、向量化，并在 Neo4j 中进行高效存储和语义搜索。
 
-本项目作为 Dify 平台的插件，提供了完整的文档管理解决方案，包括文档存储、语义查询和节点属性向量化等功能。
+### 核心特性
 
-## 核心特性
-
-- **🚀 智能向量化**: 使用 BAAI/bge-large-zh-v1.5 模型，专门优化中文文档的向量嵌入
-- **📊 双索引存储**: 基于 Neo4j 图数据库，支持文本块和节点属性的分离式向量存储
-- **🔍 语义查询**: 基于双向量索引的智能语义搜索，支持加权合并和结果排序
-- **⚡ 高性能索引**: 支持 `chunk_embedding_index` 和 `properties_embedding_index` 双向量索引
-- **🔄 数据管理**: 智能的文档更新机制，自动处理旧数据清理
-- **🛡️ 线程安全**: 多线程环境下的安全模型加载和推理
-- **⚖️ 加权合并**: 可配置的权重参数，灵活调节文本块与节点属性的优先级
-- **📄 多格式支持**: 支持纯文本和PDF文档处理
-- **🧩 插件化架构**: 与Dify平台无缝集成，提供多种工具
+- **文档存储**：支持文本/PDF分块向量化并存入Neo4j
+- **双索引语义查询**：同时检索 `chunk_embedding_index` 和 `properties_embedding_index`，支持加权合并
+- **节点属性向量化**：任意标签节点（如Equipment、Project）均可序列化后生成向量
+- **插件化设计**：兼容 Dify 平台，提供 `neo4j_doc_store`、`neo4j_semantic_query` 等工具
+- **线程安全与事务保证**：确保多线程下模型安全加载及数据一致性
 
 ## 技术架构
 
-### 核心技术栈
-- **Python 3.12+**: 主要开发语言
-- **Neo4j 5.28.2**: 图数据库，支持向量索引
-- **Transformers**: BGE模型加载，使用AutoModel和AutoTokenizer
-- **PyTorch 2.7.1**: 深度学习框架，支持GPU加速
-- **Dify Plugin Framework 0.2.x**: 插件化架构支持
+### 技术栈
 
-### 架构设计
-- **模块化设计**: 各功能模块解耦，便于维护扩展
-- **插件化架构**: 支持Dify平台集成
-- **配置驱动**: 通过YAML配置文件灵活控制行为
+- **Python 3.8+**：主开发语言
+- **Neo4j 5.28.2**：图数据库，支持向量索引
+- **BAAI/bge-large-zh-v1.5**：中文向量模型，用于语义嵌入
+- **Transformers**：HuggingFace库加载BGE模型
+- **PyTorch 2.7.1**：深度学习框架，支持GPU加速
+- **Dify Plugin Framework 0.2.x**：插件化架构支持
+- **FastAPI**：高性能Web框架，提供RESTful API接口
+
+### 项目结构
+
+```
+├── _assets/                # 配置文件（config.py）
+├── provider/              # Dify插件入口
+├── tools/                 # 工具实现
+│   ├── neo4j_doc_store.py         # 文档存储工具
+│   ├── neo4j_semantic_query.py    # 语义查询工具
+│   └── neo4j_properties_embedded.py # 节点属性向量化工具
+├── utils/                 # 核心模块
+│   ├── vector_embedder.py         # BGE向量生成
+│   ├── neo4j_store.py            # Neo4j操作封装
+│   └── document_processor.py      # 文档分块处理
+├── main.py               # FastAPI主程序入口
+├── manifest.yaml         # Dify插件清单
+└── requirements.txt      # 项目依赖
+```
 
 ## 快速开始
 
-### 1. 环境准备
+### 环境要求
 
-**系统要求:**
-- Python 3.12+
-- 内存 4GB+ （BGE-large模型要求）
-- Neo4j 5.x 数据库实例
+- **Python版本**：3.8+
+- **内存**：至少4GB（BGE-large模型需求）
+- **Neo4j版本**：5.x（支持向量索引）
+- **GPU支持**：可选，启用需CUDA环境
 
-**安装依赖:**
+### 安装依赖
+
 ```bash
-# 克隆项目
-git clone https://github.com/HXZ-um/neo4j_document_manager.git
-cd neo4j_document_manager
-
-# 创建虚拟环境（推荐）
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-venv\Scripts\activate     # Windows
-
-# 安装依赖
 pip install -r requirements.txt
 ```
 
-### 2. 配置数据库
+### 配置说明
 
-编辑 `_assets/config.py` 文件，设置 Neo4j 数据库连接信息：
+插件支持通过 Dify 平台界面配置 Neo4j 数据库连接参数：
 
-```python
-# 文本处理配置
-DEFAULT_CHUNK_SIZE = 512
-DEFAULT_CHUNK_OVERLAP = 50
+1. 在 Dify 平台中安装插件后，进入插件设置页面
+2. 填写以下配置项：
+   - **Neo4j URI**：Neo4j数据库地址（例如：bolt://localhost:7687）
+   - **Neo4j Username**：连接数据库的用户名
+   - **Neo4j Password**：连接数据库的密码
 
-# Neo4j数据库配置
-NEO4J_URI = "bolt://localhost:7687"  # 修改为你的Neo4j地址
-NEO4J_USER = "neo4j"                 # 修改为你的用户名
-NEO4J_PASSWORD = "your_password"     # 修改为你的密码
+这些配置将在运行时传递给所有工具，无需在代码中硬编码。
 
-# 嵌入模型配置
-BGE_LARGE_EMBEDDING_MODEL = "BAAI/bge-large-zh-v1.5"
-```
+## FastAPI Web服务使用说明
 
-### 3. 初始化数据库
+本项目除了作为Dify插件使用外，还提供了一个基于FastAPI的独立Web服务，可以直接通过HTTP API调用所有功能。
 
-首次运行时，系统会自动创建必要的约束和向量索引。
-
-### 4. 测试运行
+### 启动服务
 
 ```bash
-# 测试BGE模型加载
-python -c "from utils.vector_embedder import BgeLargeEmbedder; embedder = BgeLargeEmbedder('BAAI/bge-large-zh-v1.5'); print('模型加载成功!')"
-
-# 启动主程序
 python main.py
 ```
 
-## 项目结构
+服务默认运行在 `http://127.0.0.1:8001`，可以通过修改 [main.py](file:///d:/dify/neo4j_document_manager/main.py) 文件中的 `uvicorn.run()` 参数来更改主机和端口。
 
-```
-neo4j_document_manager/
-├── _assets/                    # 配置文件目录
-│   └── config.py               # 核心配置文件
-├── provider/                   # Dify插件提供者
-│   ├── neo4j_document_manager.py    # 文档管理插件主程序
-│   └── neo4j_document_manager.yaml  # 插件配置文件
-├── tools/                      # Dify工具目录
-│   ├── neo4j_doc_store.py           # 文档存储工具
-│   ├── neo4j_doc_store.yaml         # 文档存储工具配置
-│   ├── neo4j_semantic_query.py      # 语义查询工具
-│   ├── neo4j_semantic_query.yaml    # 语义查询工具配置
-│   ├── neo4j_properties_embedded.py  # 节点属性向量化工具
-│   └── neo4j_properties_embedded.yaml # 节点属性向量化工具配置
-├── utils/                      # 核心工具模块
-│   ├── document_processor.py        # 文档处理模块
-│   ├── neo4j_store.py              # Neo4j存储模块
-│   └── vector_embedder.py           # BGE向量嵌入模块
-├── main.py                     # 主程序入口
-├── requirements.txt             # Python依赖列表
-├── manifest.yaml                # Dify插件清单
-└── README.md                   # 项目说明文档
-```
+### API文档
 
-### 模块说明
+启动服务后，可以通过以下URL访问自动生成的API文档：
 
-| 模块 | 功能描述 | 核心特性 |
-|------|---------|----------|
-| **vector_embedder.py** | BGE向量嵌入器 | • BGE检索指令前缀<br>• L2归一化处理<br>• GPU加速支持<br>• 线程安全设计 |
-| **neo4j_store.py** | Neo4j图数据库操作 | • 双向量索引支持<br>• 文档更新机制<br>• 事务保证<br>• 加权查询合并 |
-| **document_processor.py** | 文档处理器 | • 文本分块处理<br>• 语义完整性保持<br>• 可配置分块策略 |
-| **neo4j_doc_store.py** | 文档存储工具 | • 双模式处理（文本+PDF）<br>• 自动向量化<br>• 事务安全存储<br>• 错误容错机制 |
-| **neo4j_semantic_query.py** | 语义查询工具 | • 双索引相似度搜索<br>• 权重可配置<br>• 结果格式化<br>• 错误处理 |
-| **neo4j_properties_embedded.py** | 节点属性向量化工具 | • 节点序列化<br>• 属性向量嵌入<br>• 支持任意标签 |
+- **Swagger UI**: http://127.0.0.1:8001/docs
+- **ReDoc**: http://127.0.0.1:8001/redoc
 
-## 工具详解
+### API端点
 
-### 📄 文档存储工具 (neo4j_doc_store)
+#### 1. 健康检查
 
-#### 核心功能
-- **双模式处理**：支持纯文本和PDF文件两种输入模式
-- **智能分块**：使用可配置的分块大小和重叠度
-- **BGE向量化**：采用BGE-large-zh-v1.5模型生成高质量中文向量
-- **Neo4j存储**：创建Chunk节点存储原文本和向量，关联Drawing节点
-- **事务安全**：确保数据一致性，支持文件更新时的旧数据清理
-
-#### 参数说明
-
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `source_url` | string | ✅ | 文档源路径或URL |
-| `file_name` | string | ✅ | 文件名标识符 |
-| `text` | string | ✅ | 直接文本内容 |
-
-#### 使用示例
-
-**处理纯文本内容：**
-```python
-from tools.neo4j_doc_store import Neo4jDocStoreTool
-
-tool = Neo4jDocStoreTool()
-result = list(tool._invoke({
-    "source_url": "manual_input",
-    "file_name": "技术文档.txt",
-    "text": "这是一个关于人工智能的技术文档内容..."
-}))
-
-print(result[0].message)  # 查看处理结果
-```
-
-**处理PDF文件：**
-```python
-result = list(tool._invoke({
-    "source_url": "/path/to/document.pdf",
-    "file_name": "设备手册.pdf",
-    "text": "PDF文件内容..."  # 通过PDF处理提取的文本内容
-}))
-```
-
-**处理在线PDF：**
-```python
-result = list(tool._invoke({
-    "source_url": "https://example.com/manual.pdf",
-    "file_name": "在线手册.pdf",
-    "text": "在线PDF文件内容..."  # 通过PDF处理提取的文本内容
-}))
-```
-
-#### 返回格式
-
-成功处理时返回：
-```json
-{
-  "status": "success",
-  "message": "文件 'xxx' 处理成功，共插入 X 个文本块"
-}
-```
-
-错误处理时返回：
-```json
-{
-  "status": "error",
-  "message": "具体错误信息"
-}
-```
-
-#### 数据库结构
-
-存储后的Neo4j图结构：
-```cypher
-(:Drawing {fileName: "技术文档.txt", uid: "hash_value", filePath: "manual_input"})
-  ← [:PART_OF] - (:Chunk {id: "技术文档.txt_chunk1", text: "...", embedding: [...], chunk_num: 1})
-  ← [:PART_OF] - (:Chunk {id: "技术文档.txt_chunk2", text: "...", embedding: [...], chunk_num: 2})
-  ← [:PART_OF] - (...)
-```
-
-### 🔍 语义查询工具 (neo4j_semantic_query)
-
-#### 功能概述
-本工具基于双向量索引（`chunk_embedding_index`和`properties_embedding_index`）的智能语义搜索工具，支持加权合并和结果排序，可配置不同类型的查询权重。
-
-#### 参数说明
-
-| 参数名 | 类型 | 必填 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `search_type` | string | ❌ | mixed | 查询类型：mixed(混合)、nodes(仅节点)、drawings(仅图纸) |
-| `query` | string | ✅ | - | 自然语言查询语句 |
-| `chunk_weight` | number | ❌ | 0.4 | 文本块权重(0.0-1.0) |
-| `node_weight` | number | ❌ | 0.6 | 节点属性权重(0.0-1.0) |
-| `limit` | number | ❌ | 10 | 返回结果数量限制 |
-
-#### 使用示例
-
-**混合查询（默认）：**
-```python
-from tools.neo4j_semantic_query import Neo4jSemanticQueryTool
-
-tool = Neo4jSemanticQueryTool()
-result = list(tool._invoke({
-    "query": "离心泵的安装方法",
-    "search_type": "mixed",
-    "chunk_weight": 0.4,
-    "node_weight": 0.6,
-    "limit": 10
-}))
-
-print(result[0].message)  # 查看处理结果
-print(result[0].results)  # 查看查询结果
-```
-
-**仅节点属性查询：**
-```python
-result = list(tool._invoke({
-    "query": "离心泵设备信息",
-    "search_type": "nodes",
-    "limit": 5
-}))
-```
-
-**仅文档内容查询：**
-```python
-result = list(tool._invoke({
-    "query": "设备安装步骤",
-    "search_type": "drawings",
-    "limit": 5
-}))
-```
-
-#### 返回格式
-
-成功查询时返回：
-```json
-{
-  "status": "success",
-  "message": "双索引查询完成，Chunk权重: 0.4, Node权重: 0.6",
-  "results": [
-    {
-      "uid": "eq_001",
-      "text": "设备安装步骤...",  // 文本块内容（仅chunk结果有）
-      "similarity": 0.8567,    // 原始相似度分数
-      "weighted_similarity": 0.7123,  // 加权后相似度分数
-      "source": "node",        // 结果来源："chunk" 或 "node"
-      "label": "Equipment",    // 主要节点标签
-      "properties": {          // 节点所有属性
-        "name": "离心泵",
-        "type": "泵类设备",
-        "manufacturer": "格兰富",
-        "description": "用于输送清水的离心泵设备"
-      }
-    }
-  ]
-}
-```
-
-#### 查询结果格式
-
-双索引查询返回的结果格式如下：
-
-```json
-{
-  "uid": "eq_001",                    // 节点唯一标识符
-  "text": "设备安装步骤...",        // 文本块内容（仅chunk结果有）
-  "similarity": 0.8567,              // 原始相似度分数
-  "weighted_similarity": 0.7123,     // 加权后相似度分数
-  "source": "node",                   // 结果来源："chunk" 或 "node"
-  "label": "Equipment",               // 主要节点标签
-  "properties": {                     // 节点所有属性
-    "name": "离心泵",
-    "type": "泵类设备",
-    "manufacturer": "格兰富",
-    "description": "用于输送清水的离心泵设备"
+- **URL**: `GET /health`
+- **描述**: 检查服务运行状态
+- **响应**:
+  ```json
+  {
+    "status": "healthy",
+    "message": "服务运行正常"
   }
-}
-```
+  ```
 
-### 🧠 节点属性向量化工具 (neo4j_properties_embedded)
+#### 2. 配置数据库连接
 
-#### 功能概述
-本工具用于将实体节点属性存储到Neo4j图数据库中，同时自动生成向量嵌入，支持节点属性的高效相似性搜索和语义分析。
+- **URL**: `POST /configure`
+- **描述**: 配置Neo4j数据库连接信息
+- **请求参数**:
+  ```json
+  {
+    "uri": "bolt://localhost:7687",
+    "user": "neo4j",
+    "password": "password"
+  }
+  ```
+- **响应**:
+  ```json
+  {
+    "status": "success",
+    "message": "数据库连接配置成功"
+  }
+  ```
 
-#### 核心功能
-- **自动向量化**: 将节点属性序列化后自动生成向量嵌入
-- **灵活标签支持**: 支持任意节点标签（Equipment、Project等）
-- **智能存储**: 自动创建向量索引并存储节点属性向量
-- **属性保留**: 完整保留原始节点属性，便于后续查询和分析
+#### 3. 存储文档
 
-#### 参数说明
+- **URL**: `POST /store_document`
+- **描述**: 将文档内容进行分块并向量化，存储到Neo4j
+- **请求参数**:
+  ```json
+  {
+    "source_url": "https://example.com/document.pdf",
+    "file_name": "document.pdf",
+    "text": "文档内容文本"
+  }
+  ```
+- **响应**:
+  ```json
+  {
+    "status": "success",
+    "message": "文件 document.pdf 处理成功，共插入 5 个文本块"
+  }
+  ```
 
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| `label` | string | ✅ | Neo4j节点标签（实体类型） |
-| `metadata_json` | string | ✅ | 节点属性的JSON字符串 |
+#### 4. 语义查询
 
-#### 使用示例
+- **URL**: `POST /semantic_query`
+- **描述**: 执行语义查询
+- **请求参数**:
+  ```json
+  {
+    "query_text": "查询内容",
+    "search_type": "mixed",
+    "top_k": 10,
+    "chunk_weight": 0.7,
+    "properties_weight": 0.3
+  }
+  ```
+- **参数说明**:
+  - `search_type`: 查询类型，可选值为"mixed"(混合)、"chunks"(仅文本块)、"nodes"(仅节点)
+  - `top_k`: 返回结果数量
+  - `chunk_weight`: chunk向量权重（仅在mixed模式下生效）
+  - `properties_weight`: properties向量权重（仅在mixed模式下生效）
+- **响应**:
+  ```json
+  {
+    "status": "success",
+    "results": [...],
+    "message": "混合查询成功，找到 8 条相关结果"
+  }
+  ```
 
-**存储设备节点属性：**
-```python
-from tools.neo4j_properties_embedded import Neo4jPropertiesEmbeddedTool
-import json
+#### 5. 节点属性向量化
 
-tool = Neo4jPropertiesEmbeddedTool()
-
-# 设备节点属性
-equipment_props = {
-    "uid": "eq_001",
-    "name": "离心泵",
-    "type": "泵类设备",
-    "manufacturer": "格兰富",
-    "description": "用于输送清水的离心泵设备",
-    "model": "CRN 32-4"
-}
-
-result = list(tool._invoke({
+- **URL**: `POST /node_properties`
+- **描述**: 将节点属性序列化后生成向量嵌入并存储到Neo4j
+- **请求参数**:
+  ```json
+  {
     "label": "Equipment",
-    "metadata_json": json.dumps(equipment_props)
-}))
+    "metadata_json": "{\"name\": \"设备名称\", \"type\": \"设备类型\", \"spec\": \"技术规格\"}"
+  }
+  ```
+- **响应**:
+  ```json
+  {
+    "status": "success",
+    "message": "节点 Equipment 属性已成功向量化存储"
+  }
+  ```
 
-print(result[0].message)  # 查看处理结果
+## 工具说明
+
+### 1. 文档存储工具 (neo4j_doc_store)
+
+将文档内容进行分块并向量化，创建Chunk节点存储原文本内容以及向量嵌入，并关联到Drawing节点。
+
+**参数：**
+- `source_url` (string, 必填)：文档源URL或文件路径
+- `file_name` (string, 必填)：文件名
+- `text` (string, 必填)：要处理的文本内容
+
+### 2. 语义查询工具 (neo4j_semantic_query)
+
+通过文本查询向量索引，支持多种查询模式选择：
+- **混合查询**：同时检索文本块和节点属性，支持加权合并
+- **仅文本块查询**：只检索文档分块内容
+- **仅节点查询**：只检索节点属性信息
+
+**参数：**
+- `search_type` (string, 可选, 默认"mixed")：查询类型，可选值为"mixed"(混合)、"chunks"(仅文本块)、"nodes"(仅节点)
+- `query_text` (string, 必填)：查询文本
+- `top_k` (int, 可选, 默认10)：返回结果数量
+- `chunk_weight` (float, 可选, 默认0.7)：chunk向量权重（仅在mixed模式下生效）
+- `properties_weight` (float, 可选, 默认0.3)：properties向量权重（仅在mixed模式下生效）
+
+### 3. 节点属性向量化工具 (neo4j_properties_embedded)
+
+将实体节点属性序列化后生成向量嵌入并存储到Neo4j数据库中，支持任意标签的节点。
+
+**参数：**
+- `label` (string, 必填)：节点标签
+- `metadata_json` (string, 必填)：包含节点属性的JSON字符串
+
+## 技术细节
+
+### 向量模型
+
+项目使用 [BAAI/bge-large-zh-v1.5](https://huggingface.co/BAAI/bge-large-zh-v1.5) 中文向量模型，该模型具有以下特点：
+
+- 专为中文语义检索优化
+- 1024维向量输出
+- 支持GPU加速（可选）
+- 首次运行时自动下载（约1.3GB）
+
+### Neo4j 数据模型
+
+```
+(:Drawing {fileName, uid, filePath}) 
+  <-[:PART_OF]- (:Chunk {id, text, embedding, chunk_num})
 ```
 
-**存储项目节点属性：**
-```python
-# 项目节点属性
-project_props = {
-    "uid": "proj_001",
-    "name": "水处理系统升级项目",
-    "status": "进行中",
-    "description": "工厂水处理系统的设备升级改造项目",
-    "startDate": "2025-01-15",
-    "endDate": "2025-12-31"
-}
+- **Drawing节点**：代表文档，包含文件名、唯一ID和路径
+- **Chunk节点**：代表文档分块，包含文本内容、向量嵌入和块编号
+- **PART_OF关系**：连接Chunk和Drawing节点
 
-result = list(tool._invoke({
-    "label": "Project",
-    "metadata_json": json.dumps(project_props)
-}))
-```
+### 向量索引
 
-#### 返回格式
+Neo4j 中创建了两个向量索引以支持双索引语义查询：
 
-成功处理时返回：
-```json
-{
-  "status": "success",
-  "message": "节点 Equipment 属性已成功向量化存储到 properties_embedding_index"
-}
-```
-
-错误处理时返回：
-```json
-{
-  "status": "error",
-  "message": "具体错误信息"
-}
-```
-
-#### 数据库结构
-
-存储后的Neo4j图结构：
-```cypher
-(:Equipment {
-  uid: "eq_001",
-  name: "离心泵",
-  type: "泵类设备",
-  manufacturer: "格兰富",
-  description: "用于输送清水的离心泵设备",
-  model: "CRN 32-4",
-  properties_embedding: [...]  // 向量化后的属性嵌入
-})
-```
-
-## 技术详细信息
-
-### BGE模型特性
-- **模型**: BAAI/bge-large-zh-v1.5
-- **维度**: 1024维向量
-- **语言**: 中文优化
-- **检索指令**: 使用BGE专用前缀 `"为这个句子生成表示以用于检索相关文章："`
-- **归一化**: L2归一化处理，提升相似度计算精度
-
-### Neo4j图数据库设计
-- **节点类型**:
-  - `Drawing`: 文档节点，存储文件元信息
-  - `Chunk`: 文本块节点，存储向量嵌入和文本内容
-  - `Equipment/Project/等`: 任意业务节点，支持属性向量化
-- **关系类型**:
-  - `PART_OF`: Chunk属于Drawing的关系
-- **索引类型**:
-  - `chunk_embedding_index`: 文本块向量索引，支持余弦相似度搜索
-  - `properties_embedding_index`: 节点属性向量索引，支持任意节点类型
-  - 唯一性约束: Chunk.id 和 Drawing.fileName
-
-### Dify插件集成
-- **插件架构**: 基于Dify Plugin Framework 0.2.x构建
-- **工具支持**: 提供三个核心工具（文档存储、语义查询、属性向量化）
-- **配置驱动**: 通过YAML配置文件管理工具参数
-- **API兼容**: 支持Dify平台的工具调用接口
-
-### 性能优化
-- **批量处理**: 支持批量生成向量，默认批大小64
-- **GPU加速**: 可选启用GPU加速向量生成
-- **混合精度**: 支持float16混合精度训练，节省显存
-- **线程安全**: 多线程环境下的安全模型加载
-- **懒加载**: 支持模型懒加载，提升启动速度
+1. **chunk_embedding_index**：用于Chunk节点的文本内容向量检索
+2. **{label}_properties_embedding_index**：用于任意标签节点的属性向量检索（动态创建）
 
 ## 注意事项
 
-### 系统要求
-1. **模型下载**: 首次运行时会自动下载 BAAI/bge-large-zh-v1.5 模型（约1.3GB）
-2. **内存要求**: BGE-large 模型需要至少 4GB 内存
-3. **Neo4j 版本**: 需要 Neo4j 5.x 版本以支持向量索引功能
-4. **PDF处理依赖**: 需要安装 PyPDF2 库（已包含在requirements.txt中）
-5. **GPU 支持**: 可选择使用 GPU 加速（需要 CUDA 支持）
+1. **首次运行**：插件首次运行时会自动下载 BGE 模型，需要网络连接且耗时较长
+2. **内存要求**：BGE-large模型加载需要至少4GB内存
+3. **数据库配置**：确保Neo4j数据库已正确配置并可访问
+4. **索引创建**：插件会自动创建必要的约束和向量索引
 
-### 数据管理
-- **文件更新机制**: 如果文件存在，系统会删除旧数据后插入新数据
-- **事务保证**: 所有数据库操作都在事务中执行，保证数据一致性
-- **连接管理**: 使用后请及时关闭数据库连接
-- **资源清理**: neo4j_doc_store工具会自动管理资源释放
+## 故障排查
 
-### 性能调优
-- **批大小**: 根据内存大小调整 `max_batch_size` 参数
-- **GPU使用**: 在有GPU的环境中设置 `use_gpu=True`
-- **分块策略**: 根据文档类型调整 `chunk_size` 和 `chunk_overlap`
-- **数据库连接池**: 高并发场景下建议配置Neo4j连接池
+### 常见问题
 
-### 故障排查
+1. **模型下载失败**：
+   - 检查网络连接
+   - 确认磁盘空间充足（至少2GB）
+   - 尝试使用代理或更换网络环境
 
-#### 常见问题
-1. **模型下载失败**: 检查网络连接，或手动下载到本地
-2. **PyPDF2依赖错误**: 运行 `pip install PyPDF2` 安装依赖
-3. **内存不足**: 减小 `max_batch_size` 或使用float16精度
-4. **Neo4j连接失败**: 检查数据库连接配置和网络可达性
-5. **向量索引错误**: 确保Neo4j版本支持向量索引（≥ 5.0）
-6. **PDF解析失败**: 检查PDF文件是否损坏或加密
+2. **数据库连接失败**：
+   - 检查Neo4j服务是否运行
+   - 验证连接参数（URI、用户名、密码）
+   - 确认防火墙设置允许连接
 
-#### 调试模式
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
+3. **向量索引创建失败**：
+   - 确认Neo4j版本为5.x
+   - 检查数据库权限设置
+   - 查看Neo4j日志获取详细错误信息
 
-#### 工具错误处理
-`neo4j_doc_store` 工具提供详细的错误信息：
-- **参数错误**: 明确指出缺少的必需参数
-- **文件处理错误**: 提供具体的失败原因
-- **数据库错误**: 返回详细的Neo4j操作失败信息
+### 测试验证
+
+可以通过以下方式验证插件功能：
+
+1. 使用 [test_doc_store.py](file:///d:/dify/neo4j_document_manager/test_doc_store.py) 测试文档存储功能
+2. 使用 [test_label_return.py](file:///d:/dify/neo4j_document_manager/test_label_return.py) 测试节点属性向量化功能
+
+运行测试前请确保已正确配置Neo4j连接参数。

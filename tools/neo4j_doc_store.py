@@ -16,9 +16,6 @@ from _assets.config import (
     DEFAULT_CHUNK_SIZE,
     DEFAULT_CHUNK_OVERLAP,
     BGE_LARGE_EMBEDDING_MODEL,
-    NEO4J_URI,
-    NEO4J_USER,
-    NEO4J_PASSWORD,
 )
 
 
@@ -31,13 +28,13 @@ class Neo4jDocStoreTool(Tool):
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage]:
         """
         执行文档分块向量化并存储到Neo4j
-
+        
         Args:
             tool_parameters: 工具参数
                 - source_url: 文档源URL或路径（必填）
                 - file_name: 文件名（必填）
                 - text: 文本内容（必填）
-
+                
         Yields:
             执行结果消息
         """
@@ -49,6 +46,12 @@ class Neo4jDocStoreTool(Tool):
             source_url = tool_parameters.get('source_url', '')
             file_name = tool_parameters.get('file_name', '')
             text = tool_parameters.get('text', '')
+            
+            # 获取运行时配置
+            runtime_config = self.runtime.credentials if hasattr(self.runtime, 'credentials') else {}
+            neo4j_uri = runtime_config.get('neo4j_uri', '')
+            neo4j_user = runtime_config.get('neo4j_user', '')
+            neo4j_password = runtime_config.get('neo4j_password', '')
 
             if not all([source_url, file_name, text]):
                 yield self.create_json_message({
@@ -56,12 +59,20 @@ class Neo4jDocStoreTool(Tool):
                     "message": "错误：参数不完整，必须包含 source_url, file_name, text",
                 })
                 return
+                
+            # 检查数据库配置
+            if not all([neo4j_uri, neo4j_user, neo4j_password]):
+                yield self.create_json_message({
+                    "status": "error",
+                    "message": "错误：缺少数据库配置，请在插件设置中配置Neo4j连接信息",
+                })
+                return
 
             # 初始化Neo4j存储
             neo4j_store = Neo4jVectorStore(
-                uri=NEO4J_URI,
-                user=NEO4J_USER,
-                password=NEO4J_PASSWORD,
+                uri=neo4j_uri,
+                user=neo4j_user,
+                password=neo4j_password,
             )
             
             # 确保约束和索引存在

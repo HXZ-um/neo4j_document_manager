@@ -2,28 +2,24 @@ identity:
   name: neo4j_properties_embedded
   author: hxz
   label:
-    en_US: Neo4j Entity Node Properties Vector Storage
-    zh_Hans: Neo4j 实体节点属性向量化存储
-    pt_BR: Armazenamento Vetorial de Propriedades de Nó de Entidade Neo4j
+    en_US: Neo4j Node Properties Embedding
+    zh_Hans: Neo4j节点属性向量化
 description:
   human:
-    en_US: Store entity node properties in Neo4j graph database with automatic vector embedding generation, enabling efficient similarity search and semantic analysis of node attributes.
-    zh_Hans: 将实体节点属性存储到Neo4j图数据库中，同时自动生成向量嵌入，支持节点属性的高效相似性搜索和语义分析。
-    pt_BR: Armazene propriedades de nós de entidade no banco de dados gráfico Neo4j com geração automática de incorporação de vetores, possibilitando busca de similaridade eficiente e análise semântica de atributos de nós.
-  llm: A tool for storing entity node properties in Neo4j with vector embedding. Requires node label and properties in JSON format. Automatically processes properties into vector representations for semantic operations.
+    en_US: Serialize node properties and generate vector embeddings for efficient semantic search and analysis in Neo4j graph database.
+    zh_Hans: 将节点属性序列化并生成向量嵌入，以便在Neo4j图数据库中进行高效的语义搜索和分析。
+  llm: This tool serializes entity node properties and generates vector embeddings for storage in Neo4j graph database, supporting efficient similarity search and semantic analysis for nodes with any label.
 parameters:
   - name: label
     type: string
     required: true
     label:
-      en_US: Neo4j Node Label
-      zh_Hans: NEO4J 节点标签
-      pt_BR: Rótulo de Nó Neo4j
+      en_US: Node Label
+      zh_Hans: 节点标签
     human_description:
-      en_US: The label name used to categorize nodes in Neo4j, representing the entity type. Must follow Neo4j label naming conventions.
-      zh_Hans: 用于在Neo4j中对节点进行分类的标签名称，代表实体类型。需遵循Neo4j标签命名规范。
-      pt_BR: O nome do rótulo usado para categorizar nós no Neo4j, representando o tipo de entidade . Deve seguir as convenções de nomenclatura de rótulos do Neo4j.
-    llm_description: Specify the Neo4j node label (entity type) for categorizing the node. Use a single word or camelCase format (e.g., "Document", "EquipmentPart").
+      en_US: The label of the node to be embedded
+      zh_Hans: 要向量化的节点标签
+    llm_description: The label of the Neo4j node whose properties need to be serialized and embedded
     form: llm
 
   - name: metadata_json
@@ -31,13 +27,11 @@ parameters:
     required: true
     label:
       en_US: Node Properties JSON
-      zh_Hans: 节点属性的json字典
-      pt_BR: Dicionário JSON de Propriedades de Nó
+      zh_Hans: 节点属性JSON
     human_description:
-      en_US: A valid JSON string containing key-value pairs of node properties (e.g., {"id":"123", "name":"Sample", "description":"Details..."}).
-      zh_Hans: 包含节点属性键值对的有效JSON字符串（例如{"id":"123", "name":"Sample", "description":"Details..."}）
-      pt_BR: Uma string JSON válida contendo pares chave-valor de propriedades de nó .
-    llm_description: Provide node properties as a valid JSON string. Include all relevant attributes (e.g., {"uid":"1001", "name":"Technical Drawing", "category":"Engineering"}).
+      en_US: JSON string containing node properties
+      zh_Hans: 包含节点属性的JSON字符串
+    llm_description: A JSON string containing all properties of the node that need to be embedded
     form: llm
 
 extra:

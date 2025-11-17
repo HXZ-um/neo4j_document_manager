@@ -2,104 +2,95 @@ identity:
   name: neo4j_semantic_query
   author: hxz
   label:
-    en_US: Neo4j Dual-Index Semantic Query
-    zh_Hans: Neo4j 双索引语义查询
-    pt_BR: Consulta Semântica de Índice Duplo Neo4j
+    en_US: Neo4j Semantic Query
+    zh_Hans: Neo4j语义查询
 description:
   human:
-    en_US: Performs semantic search on Neo4j graph database using dual vector indexes (chunks + node properties) with weighted merging for enhanced relevance.
-    zh_Hans: 使用双向量索引（文本块+节点属性）在 Neo4j 图数据库上执行语义搜索，支持加权合并以提升相关性。
-    pt_BR: Realiza busca semântica no banco de dados de gráficos Neo4j usando índices de vetores duplos (chunks + propriedades de nós) com mesclagem ponderada para relevância aprimorada.
-  llm: Use this tool to query relevant content from Neo4j graph database via dual-index semantic similarity search. Searches both text chunks and node properties with configurable weights.
+    en_US: Perform semantic search on documents and node properties stored in Neo4j using vector embeddings.
+    zh_Hans: 使用向量嵌入对存储在Neo4j中的文档和节点属性进行语义搜索。
+  llm: This tool performs semantic searches on Neo4j data using vector embeddings. It supports multiple search modes including mixed (both chunks and nodes), chunks only, and nodes only.
 parameters:
   - name: search_type
     type: select
     required: false
-    options:
-      - label:
-          en_US: Mixed (Chunks + Nodes)
-          zh_Hans: 混合（文本块+节点属性）
-          pt_BR: Misto (Fragmentos + Nós)
-        value: mixed
-      - label:
-          en_US: Nodes Only
-          zh_Hans: 仅根据节点属性查询节点
-          pt_BR: Apenas Nós
-        value: nodes
-      - label:
-          en_US: Drawings Only
-          zh_Hans: 仅根据图纸文本内容查询图纸节点
-          pt_BR: Apenas Diagramas
-        value: drawings
-    default: mixed
     label:
-      en_US: Query Type
+      en_US: Search Type
       zh_Hans: 查询类型
-      pt_BR: Tipo de Consulta
     human_description:
-      en_US: Type of content to search (mixed = both chunks and nodes, nodes = only node properties, drawings = only drawings content)
-      zh_Hans: 要搜索的内容类型（混合 = 同时搜索文本块和节点，仅节点 = 仅搜索节点属性，仅图纸内容 = 仅搜索图纸内容）
-      pt_BR: Tipo de conteúdo para buscar (misto = tanto fragmentos quanto nós, apenas nós = apenas propriedades de nós, apenas drawings = apenas conteúdo de drawings)
-    llm_description: Specify the search scope. Use "mixed" for comprehensive results, "nodes" for entity properties only, or "drawings" for diagram content only.
-    form: form
+      en_US: Type of semantic search to perform
+      zh_Hans: 要执行的语义搜索类型
+    llm_description: Specify the search type - mixed (both chunks and nodes), chunks (only document chunks), or nodes (only node properties)
+    options:
+      - value: mixed
+        label:
+          en_US: Mixed (Chunks + Nodes)
+          zh_Hans: 混合查询（文本块+节点）
+      - value: chunks
+        label:
+          en_US: Chunks Only
+          zh_Hans: 仅文本块
+      - value: nodes
+        label:
+          en_US: Nodes Only
+          zh_Hans: 仅节点
+    default: mixed
+    form: llm
 
-  - name: query
+  - name: query_text
     type: string
     required: true
     label:
-      en_US: Natural Language Query
-      zh_Hans: 自然语言查询语句
-      pt_BR: Consulta em Linguagem Natural
+      en_US: Query Text
+      zh_Hans: 查询文本
     human_description:
-      en_US: The natural language question or statement to search for relevant content in Neo4j.
-      zh_Hans: 用于在 Neo4j 中搜索相关内容的自然语言问题或陈述。
-      pt_BR: A pergunta ou declaração em linguagem natural para buscar conteúdo relevante no Neo4j.
-    llm_description: Input your natural language query here to find relevant information in the Neo4j graph database.
+      en_US: The text to search for using semantic similarity
+      zh_Hans: 使用语义相似性搜索的文本
+    llm_description: The natural language query text for semantic search
     form: llm
-  
+
+  - name: top_k
+    type: number
+    required: false
+    label:
+      en_US: Result Count
+      zh_Hans: 结果数量
+    human_description:
+      en_US: Number of results to return (1-50)
+      zh_Hans: 要返回的结果数量（1-50）
+    llm_description: Number of top results to return, between 1 and 50
+    default: 10
+    min: 1
+    max: 50
+    form: llm
+
   - name: chunk_weight
     type: number
     required: false
-    default: 0.4
     label:
-      en_US: Text Chunk Weight
+      en_US: Chunk Weight
       zh_Hans: 文本块权重
-      pt_BR: Peso do Fragmento de Texto
     human_description:
-      en_US: Weight for text chunk results in final ranking (0.0-1.0, default:0.4)
-      zh_Hans: 文本块结果在最终排序中的权重 (0.0-1.0，默认:0.4)
-      pt_BR: Peso para resultados de fragmentos de texto na classificação final (0.0-1.0, padrão:0.4)
-    llm_description: Set the weight for text chunk search results. Higher values prioritize document content.
+      en_US: Weight for chunk similarity scores in mixed search (0.0-1.0)
+      zh_Hans: 混合搜索中文本块相似度分数的权重（0.0-1.0）
+    llm_description: Weight for chunk similarity scores in mixed search mode, between 0.0 and 1.0
+    default: 0.7
+    min: 0.0
+    max: 1.0
     form: llm
-  
-  - name: node_weight
+
+  - name: properties_weight
     type: number
     required: false
-    default: 0.6
     label:
-      en_US: Node Property Weight
-      zh_Hans: 节点属性权重
-      pt_BR: Peso da Propriedade do Nó
+      en_US: Properties Weight
+      zh_Hans: 属性权重
     human_description:
-      en_US: Weight for node property results in final ranking (0.0-1.0, default:0.6)
-      zh_Hans: 节点属性结果在最终排序中的权重 (0.0-1.0，默认:0.6)
-      pt_BR: Peso para resultados de propriedades de nós na classificação final (0.0-1.0, padrão:0.6)
-    llm_description: Set the weight for node property search results. Higher values prioritize entity metadata.
-    form: llm
-    
-  - name: limit
-    type: number
-    required: false
-    default: 10
-    label:
-      en_US: Result Limit
-      zh_Hans: 结果数量限制
-      pt_BR: Limite de Resultados
-    human_description:
-      en_US: Maximum number of results to return (default:10)
-      zh_Hans: 返回结果的最大数量 (默认:10)
-      pt_BR: Número máximo de resultados a retornar (padrão:10)
-    llm_description: Specify the maximum number of search results to return.
+      en_US: Weight for node properties similarity scores in mixed search (0.0-1.0)
+      zh_Hans: 混合搜索中节点属性相似度分数的权重（0.0-1.0）
+    llm_description: Weight for node properties similarity scores in mixed search mode, between 0.0 and 1.0
+    default: 0.3
+    min: 0.0
+    max: 1.0
     form: llm
 
 extra:

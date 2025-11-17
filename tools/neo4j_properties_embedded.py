@@ -18,9 +18,6 @@ from _assets.config import (
     DEFAULT_CHUNK_SIZE,
     DEFAULT_CHUNK_OVERLAP,
     BGE_LARGE_EMBEDDING_MODEL,
-    NEO4J_URI,
-    NEO4J_USER,
-    NEO4J_PASSWORD,
 )
 
 
@@ -52,15 +49,6 @@ class Neo4jPropertiesEmbeddedTool(Tool):
         chunk_overlap=DEFAULT_CHUNK_OVERLAP,
     )
 
-    embedder = BgeLargeEmbedder(model_name=BGE_LARGE_EMBEDDING_MODEL)
-
-    store = Neo4jVectorStore(
-        uri=NEO4J_URI,
-        user=NEO4J_USER,
-        password=NEO4J_PASSWORD,
-    )
-    store.create_constraints()
-
     def _invoke(self, tool_parameters: dict[str, Any]) -> Generator[ToolInvokeMessage]:
         """
         执行节点属性向量化并存储到Neo4j
@@ -73,7 +61,11 @@ class Neo4jPropertiesEmbeddedTool(Tool):
         Yields:
             执行结果消息
         """
+        neo4j_store = None
+        embedder = None
+        
         try:
+            # 获取参数
             label = tool_parameters.get("label", "")
             if not label:
                 yield self.create_json_message({
@@ -92,17 +84,44 @@ class Neo4jPropertiesEmbeddedTool(Tool):
                 })
                 return
 
+            # 获取运行时配置
+            runtime_config = self.runtime.credentials if hasattr(self.runtime, 'credentials') else {}
+            neo4j_uri = runtime_config.get('neo4j_uri', '')
+            neo4j_user = runtime_config.get('neo4j_user', '')
+            neo4j_password = runtime_config.get('neo4j_password', '')
+            
+            # 检查数据库配置
+            if not all([neo4j_uri, neo4j_user, neo4j_password]):
+                yield self.create_json_message({
+                    "status": "error",
+                    "message": "错误：缺少数据库配置，请在插件设置中配置Neo4j连接信息",
+                })
+                return
+
             try:
                 props = json.loads(metadata_json)
 
                 # 先序列化节点
                 serialized = serialize_node(label, props)
 
+                # 初始化向量化器
+                embedder = BgeLargeEmbedder(model_name=BGE_LARGE_EMBEDDING_MODEL)
+                
                 # 计算向量
-                embedding = self.embedder.embed_query(serialized)
+                embedding = embedder.embed_query(serialized)
+
+                # 初始化Neo4j存储
+                neo4j_store = Neo4jVectorStore(
+                    uri=neo4j_uri,
+                    user=neo4j_user,
+                    password=neo4j_password,
+                )
+                
+                # 确保约束和索引存在
+                neo4j_store.create_constraints()
 
                 # 插入/更新到 Neo4j，使用新的 insert_node 方法
-                success = self.store.insert_node(label=label, props=props, embedding=embedding)
+                success = neo4j_store.insert_node(label=label, props=props, embedding=embedding)
 
                 if success:
                     yield self.create_json_message({
@@ -132,3 +151,7 @@ class Neo4jPropertiesEmbeddedTool(Tool):
                 "status": "error",
                 "message": f"存储失败：{str(e)}",
             })
+
+        finally:
+            if neo4j_store:
+                neo4j_store.close()

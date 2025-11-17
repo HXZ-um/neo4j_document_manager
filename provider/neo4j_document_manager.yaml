@@ -17,3 +17,37 @@ tools:
 extra:
   python:
     source: provider/neo4j_document_manager.py
+credentials_for_provider:
+  neo4j_uri:
+    type: text-input
+    required: true
+    label:
+      en_US: Neo4j URI
+      zh_Hans: Neo4j数据库地址
+    help:
+      en_US: The URI of your Neo4j database instance (e.g., bolt://localhost:7687)
+      zh_Hans: 您的Neo4j数据库实例URI（例如：bolt://localhost:7687）
+    placeholder:
+      en_US: bolt://localhost:7687
+      zh_Hans: bolt://localhost:7687
+  neo4j_user:
+    type: text-input
+    required: true
+    label:
+      en_US: Neo4j Username
+      zh_Hans: Neo4j用户名
+    help:
+      en_US: The username to connect to your Neo4j database
+      zh_Hans: 连接到Neo4j数据库的用户名
+    placeholder:
+      en_US: neo4j
+      zh_Hans: neo4j
+  neo4j_password:
+    type: secret-input
+    required: true
+    label:
+      en_US: Neo4j Password
+      zh_Hans: Neo4j密码
+    help:
+      en_US: The password to connect to your Neo4j database
+      zh_Hans: 连接到Neo4j数据库的密码
