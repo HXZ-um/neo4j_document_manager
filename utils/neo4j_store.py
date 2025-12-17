@@ -277,7 +277,7 @@ class Neo4jVectorStore:
                 print(f"节点 {label} 向量化存储失败: {e}")
                 return False
 
-    def similarity_search(self, query_embedding: List[float], limit: int = 10, 
+    def similarity_search(self, query_embedding: List[float], limit: int = 10,
                          chunk_weight: float = 0.4, node_weight: float = 0.6) -> List[Dict]:
         """
         双索引向量相似度搜索，支持加权合并
@@ -317,6 +317,30 @@ class Neo4jVectorStore:
             print(f"Similarity search error: {str(e)}")
             return []
 
+    def _filter_vector_fields(self, properties: Dict) -> Dict:
+        """
+        过滤掉属性中的向量相关字段
+
+        Args:
+            properties: 原始属性字典
+
+        Returns:
+            过滤后的属性字典
+        """
+        if not properties:
+            return {}
+
+        vector_fields = {'embedding', 'properties_embedding'}
+
+        # 过滤掉所有向量相关字段（不区分大小写）
+        filtered = {}
+        for key, value in properties.items():
+            # 检查字段名是否包含向量相关关键词（不区分大小写）
+            if not any(vec_field.lower() in key.lower() for vec_field in vector_fields):
+                filtered[key] = value
+        return filtered
+
+
     def search_chunks(self, query_embedding: List[float], limit: int = 10) -> List[Dict]:
         """
         根据内容（Chunk.embedding）检索图纸
@@ -336,13 +360,21 @@ class Neo4jVectorStore:
                     MATCH (c)-[:PART_OF]->(p:Drawing)
                     RETURN 
                         c.text AS text,
-                        p.uid AS uid,
                         PROPERTIES(p) AS all_properties,
                         score AS similarity,
                         'chunk' AS source,
                         [lab IN labels(p) | lab][0] AS label
                 """, query_embedding=query_embedding, top_k=limit)
-                return res.data()
+
+                # 处理结果，过滤向量字段
+                results = []
+                for record in res.data():
+                    # 过滤 all_properties 中的向量字段
+                    record['all_properties'] = self._filter_vector_fields(record.get('all_properties', {}))
+                    results.append(record)
+                return results
+
+
             except Exception as e:
                 print(f"Chunk 向量查询失败: {e}")
                 return []
@@ -372,14 +404,17 @@ class Neo4jVectorStore:
                             YIELD node AS n, score
                             RETURN 
                                 '' AS text,
-                                COALESCE(n.uid, n.name, n.fileName, 'unknown') AS uid,
                                 PROPERTIES(n) AS all_properties,
                                 score AS similarity,
                                 'node' AS source,
                                 '{label}' AS label
                         """
                         res = session.run(query_text, query_embedding=query_embedding, top_k=limit)
-                        results.extend(res.data())
+                        # 处理当前标签的结果，过滤向量字段
+                        for record in res.data():
+                            record['all_properties'] = self._filter_vector_fields(record.get('all_properties', {}))
+                            results.append(record)
+
                     except Exception as label_e:
                         print(f"标签 {label} 向量查询失败: {label_e}")
             except Exception as e:
